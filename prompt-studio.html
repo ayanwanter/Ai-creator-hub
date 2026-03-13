@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Prompt Studio - AI Creator Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .studio-container { max-width: 1200px; padding: 0 1rem; width: 100%; z-index: 1; }
+        
+        /* Auth Container for Prompt Studio */
+        .studio-auth {
+            position: absolute; 
+            top: 1.5rem; 
+            right: 2rem; 
+            z-index: 100;
+        }
+
+        .search-section {
+            background: #fffdf5;
+            border: 4px solid var(--border-color);
+            box-shadow: 8px 8px 0px rgba(30, 39, 46, 0.2);
+            border-radius: 15px 255px 15px 225px/255px 15px 225px 15px;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        /* ... keeping rest of styles mostly intact in between ... */
+        .search-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .search-bar-wrapper {
+            display: flex;
+            gap: 1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .search-bar-wrapper input {
+            flex-grow: 1;
+            font-size: 1.5rem;
+            padding: 1.2rem 1.8rem;
+            margin-bottom: 0;
+        }
+
+        .search-bar-wrapper .primary-btn {
+            width: auto;
+            margin-top: 0;
+            padding: 0 2rem;
+            font-size: 1.5rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2.5rem;
+        }
+
+        .section-header {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prompt-card {
+            background: white;
+            border: 3px solid var(--border-color);
+            box-shadow: 5px 5px 0px rgba(30, 39, 46, 0.1);
+            border-radius: 20px 255px 10px 225px/255px 15px 225px 15px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .prompt-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 7px 7px 0px rgba(30, 39, 46, 0.15);
+        }
+
+        .prompt-text {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+        }
+
+        .prompt-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: white;
+            border: 2px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s;
+            font-weight: bold;
+        }
+
+        .action-btn.copy { color: var(--accent); }
+        .action-btn.save { color: var(--primary); }
+        .action-btn.remix { color: var(--secondary); background: #f1fef4; }
+        
+        .action-btn.saved { background: var(--primary); color: white; }
+
+        .action-btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 2px 2px 0px var(--border-color);
+        }
+
+        .action-btn:active {
+            transform: translate(1px, 1px);
+            box-shadow: 0px 0px 0px;
+        }
+
+        .sidebar { display: flex; flex-direction: column; gap: 2rem; }
+        
+        @media (max-width: 900px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .search-bar-wrapper { flex-direction: column; }
+        }
+    </style>
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="firebase-config.js"></script>
+</head>
+<body>
+    <div class="background-shapes">
+        <div class="shape shape-1">
+            <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M49 5L61.5 35.5L94 37L68.5 58L76.5 89.5L49 72L21.5 89.5L29.5 58L4 37L36.5 35.5L49 5Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="shape shape-2">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 50C20 10 40 90 60 50C80 10 95 90 95 50" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></svg>
+        </div>
+        <div class="shape shape-3">
+            <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20 15L85 50L20 85V15Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/></svg>
+        </div>
+    </div>
+    
+    <div class="studio-auth" id="auth-container">
+        <button id="loginBtn" class="pill" style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 1.1rem; padding: 0.5rem 1rem;">
+            <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)"><path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/><path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/><path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"/><path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/></g></svg>
+            Login
+        </button>
+        <div id="userProfile" style="display: none; align-items: center; gap: 10px; background: white; padding: 0.3rem 0.8rem; border: 2px solid var(--border-color); border-radius: 20px; box-shadow: 2px 2px 0px var(--border-color);">
+            <img id="userAvatar" src="" alt="avatar" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color);">
+            <span id="userName" style="font-weight: bold; font-size: 1.1rem; color: var(--text-main);"></span>
+            <button id="logoutBtn" style="background: none; border: none; font-size: 0.9rem; color: var(--primary); font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 5px;">Logout</button>
+        </div>
+    </div>
+
+    <div class="studio-container container">
+        <div style="margin-bottom: 1.5rem; text-align: left;">
+            <a href="index.html" class="back-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                Back to Hub
+            </a>
+        </div>
+        
+        <div class="search-section">
+            <h1 class="search-title">
+                Smart Prompt Studio
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="var(--primary)" xmlns="http://www.w3.org/2000/svg" stroke="var(--border-color)" stroke-width="1.5"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7Z" stroke-linejoin="round"/></svg>
+            </h1>
+            <p style="font-size: 1.3rem; margin-bottom: 2rem; color: var(--text-muted);">Discover, generate, and remix AI-ready prompts instantly.</p>
+            
+            <form id="studioSearchForm" class="search-bar-wrapper input-group">
+                <input type="text" id="studioPromptInput" placeholder="E.g., anime edit, cyberpunk wallpaper, instagram reel concept..." required>
+                <button type="submit" id="studioGenerateBtn" class="primary-btn">
+                    <span class="btn-text">Generate ✨</span>
+                    <div class="loader" id="studioLoader"></div>
+                </button>
+            </form>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="main-content">
+                <h2 class="section-header">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                    Generated Prompt
+                </h2>
+                <div id="generatedPromptContainer">
+                    <p style="font-size: 1.2rem; color: var(--text-muted); font-style: italic;">Enter an idea above to generate a highly detailed prompt...</p>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div>
+                    <h2 class="section-header">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                        Saved Prompts
+                    </h2>
+                    <div id="savedPromptsContainer">
+                        <p style="font-size: 1.1rem; color: var(--text-muted);">No saved prompts yet. Click 'Save' on a prompt you like!</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="section-header">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Trending Ideas
+                    </h2>
+                    <div id="trendingContainer">
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                            <span class="pill trending-pill" style="cursor: pointer;">Cyberpunk Character Art</span>
+                            <span class="pill trending-pill" style="cursor: pointer;">Lo-Fi Animation Loop</span>
+                            <span class="pill trending-pill" style="cursor: pointer;">Cinematic Film Look</span>
+                            <span class="pill trending-pill" style="cursor: pointer;">Viral Tech Review Hook</span>
+                            <span class="pill trending-pill" style="cursor: pointer;">Vaporwave Thumbnail</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

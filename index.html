@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Creator Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="firebase-config.js"></script>
+</head>
+<body>
+    <div class="background-shapes">
+        <div class="shape shape-1">
+            <!-- Doodle Star -->
+            <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M49 5L61.5 35.5L94 37L68.5 58L76.5 89.5L49 72L21.5 89.5L29.5 58L4 37L36.5 35.5L49 5Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="shape shape-2">
+            <!-- Doodle Squiggle -->
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 50C20 10 40 90 60 50C80 10 95 90 95 50" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div class="shape shape-3">
+            <!-- Doodle Play Button -->
+            <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 15L85 50L20 85V15Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+    
+    <div style="position: absolute; top: 1.5rem; right: 2rem; z-index: 100;" id="auth-container">
+        <button id="loginBtn" class="pill" style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 1.1rem; padding: 0.5rem 1rem;">
+            <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)"><path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/><path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/><path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"/><path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/></g></svg>
+            Login
+        </button>
+        <div id="userProfile" style="display: none; align-items: center; gap: 10px; background: white; padding: 0.3rem 0.8rem; border: 2px solid var(--border-color); border-radius: 20px; box-shadow: 2px 2px 0px var(--border-color);">
+            <img id="userAvatar" src="" alt="avatar" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color);">
+            <span id="userName" style="font-weight: bold; font-size: 1.1rem; color: var(--text-main);"></span>
+            <button id="logoutBtn" style="background: none; border: none; font-size: 0.9rem; color: var(--primary); font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 5px;">Logout</button>
+        </div>
+    </div>
+
+    <div class="container container-menu">
+        <header>
+            <h1>AI Creator <span>Hub</span></h1>
+            <p>Your ultimate creator toolkit ✨</p>
+        </header>
+        
+        <main class="menu-grid">
+            <!-- Hero Card: Smart Prompt Studio -->
+            <a href="prompt-studio.html" class="menu-card glass-panel" style="grid-column: 1 / -1; border-color: var(--secondary); background: #fffcf8;">
+                <div class="card-icon" style="background-color: var(--secondary); color: white; width: 80px; height: 80px;">
+                    <!-- Crown Doodle -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7Z"/><path d="M7 21h10"/></svg>
+                </div>
+                <h2 style="font-size: 2.5rem; color: var(--secondary); display: flex; align-items: center; gap: 10px;">Smart Prompt Studio <span style="font-size: 1.5rem; background: var(--secondary); color: white; padding: 2px 10px; border-radius: 20px; font-weight: normal; margin-left: auto;">NEW</span></h2>
+                <p style="font-size: 1.4rem;">Type an idea and instantly generate detailed, optimized prompts for AI Art, Video, or Design. Remix matching library prompts instantly!</p>
+            </a>
+
+            <a href="bio.html" class="menu-card glass-panel">
+                <div class="card-icon gradient-1">
+                    <!-- Pen Doodle -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                </div>
+                <h2>AI Bio Generator</h2>
+                <p>Instantly craft viral, premium bios for Instagram, Twitter (X), and YouTube.</p>
+                <div class="pill-container"><span class="pill active">Active</span></div>
+            </a>
+
+            <a href="title.html" class="menu-card glass-panel">
+                <div class="card-icon gradient-2">
+                    <!-- Bulb Doodle -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                </div>
+                <h2>Title Generator</h2>
+                <p>Generate highly clickable YouTube and Reels titles optimized for engagement.</p>
+                <div class="pill-container"><span class="pill active">Active</span></div>
+            </a>
+
+            <a href="hashtag.html" class="menu-card glass-panel">
+                <div class="card-icon gradient-3">
+                     <!-- Hash Doodle -->
+                     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/></svg>
+                </div>
+                <h2>Hashtag Strategy</h2>
+                <p>Find the best performing hashtags and keywords for maximum organic reach.</p>
+                <div class="pill-container"><span class="pill active">Active</span></div>
+            </a>
+
+            <a href="script-writer.html" class="menu-card glass-panel">
+                <div class="card-icon gradient-1">
+                    <!-- File Doodle -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                </div>
+                <h2>Script/Caption Writer</h2>
+                <p>Turn any idea into a full 60-second video script or engaging caption.</p>
+                <div class="pill-container"><span class="pill active">Active</span></div>
+            </a>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
