@@ -1,0 +1,7 @@
+{
+  "name": "ai-creator-hub",
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ]
+}

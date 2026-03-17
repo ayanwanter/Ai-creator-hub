@@ -1,5 +1,5 @@
 // ----------------------------------------------------
-// FIREBASE AUTHENTICATION & CREDIT LOGIC
+// FULL-STACK AUTHENTICATION & CREDIT LOGIC
 // ----------------------------------------------------
 let currentUser = null;
 let userCredits = 5;
@@ -9,20 +9,88 @@ const authModal = document.getElementById('authModal');
 const creditBadge = document.getElementById('creditBadge');
 const creditCount = document.getElementById('creditCount');
 const loginBtn = document.getElementById('loginBtn');
-const googleLoginBtn = document.getElementById('googleLoginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const userProfile = document.getElementById('userProfile');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 
-function initFirebaseAuth() {
-    if (!window.firebaseAuth) return;
+// Helper: API Fetch with JSON bodies
+async function apiFetch(url, method = 'GET', body = null) {
+    const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+    };
+    if (body) options.body = JSON.stringify(body);
+    
+    const res = await fetch(url, options);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+}
 
-    const { auth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } = window.firebaseAuth;
-    const { db, doc, getDoc, setDoc, updateDoc } = window.firebaseDb;
+// Update UI based on User State
+const updateAuthStateUI = (user) => {
+    if (user) {
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (userProfile) userProfile.style.display = 'flex';
+        if (creditBadge) creditBadge.style.display = 'block';
+        if (userName) userName.innerText = user.name;
+        if (userAvatar) userAvatar.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id}`;
+        if (creditCount) creditCount.innerText = user.credits;
+        
+        currentUser = user;
+        userCredits = user.credits;
+
+        // Dashboard specific updates
+        const dashCredits = document.getElementById('dashCredits');
+        if (dashCredits) dashCredits.innerText = user.credits;
+        const welcomeLabel = document.getElementById('welcomeUser');
+        if (welcomeLabel) welcomeLabel.innerHTML = `Welcome, <span>${user.name}</span>`;
+    } else {
+        if (loginBtn) loginBtn.style.display = 'flex';
+        if (userProfile) userProfile.style.display = 'none';
+        if (creditBadge) creditBadge.style.display = 'none';
+        currentUser = null;
+        userCredits = 5;
+    }
+};
+
+// Check for existing session on load
+async function checkAuthSession() {
+    try {
+        const data = await apiFetch('/api/user');
+        updateAuthStateUI(data.user);
+    } catch (err) {
+        updateAuthStateUI(null);
+    }
+}
+
+// Global Credit Check
+window.checkAndDeductCredit = async () => {
+    if (!currentUser) {
+        toggleModal(true);
+        return false;
+    }
+    if (userCredits <= 0) {
+        alert("⚠️ You've run out of daily credits! Come back tomorrow. ✨");
+        return false;
+    }
+
+    try {
+        const data = await apiFetch('/api/use-credit', 'POST');
+        userCredits = data.credits;
+        if (creditCount) creditCount.innerText = userCredits;
+        const dashCredits = document.getElementById('dashCredits');
+        if (dashCredits) dashCredits.innerText = userCredits;
+        return true;
+    } catch (err) {
+        alert("Action failed: " + err.message);
+        return false;
+    }
+};
 
 // --- Modal Logic ---
-const closeAuthModalBuffer = document.getElementById('closeAuthModal');
+const closeAuthModal = document.getElementById('closeAuthModal');
 const authTabs = document.querySelectorAll('.auth-tab');
 
 const toggleModal = (show) => {
@@ -30,7 +98,7 @@ const toggleModal = (show) => {
 };
 
 if (loginBtn) loginBtn.addEventListener('click', () => toggleModal(true));
-if (closeAuthModalBuffer) closeAuthModalBuffer.addEventListener('click', () => toggleModal(false));
+if (closeAuthModal) closeAuthModal.addEventListener('click', () => toggleModal(false));
 
 authTabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -42,161 +110,87 @@ authTabs.forEach(tab => {
     });
 });
 
-function initFirebaseAuth() {
-    if (!window.firebaseAuth) return;
-
-    const { auth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } = window.firebaseAuth;
-    const { db, doc, getDoc, setDoc, updateDoc } = window.firebaseDb;
-
-    // --- Modal Logic removed from here (moved globally above) ---
-
-    // --- Credit Logic ---
-    const updateCreditUI = () => {
-        if (creditCount) creditCount.innerText = userCredits;
-        if (creditBadge) {
-            creditBadge.style.display = currentUser ? 'block' : 'none';
-            creditBadge.classList.toggle('low-credits', userCredits <= 1);
-        }
-    };
-
-    const syncUserCredits = async (user) => {
-        if (!user || !db) return;
+// --- Forms ---
+const loginForm = document.getElementById('emailLoginForm');
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const btn = loginForm.querySelector('button');
         try {
-            const userRef = doc(db, 'users', user.uid);
-            const docSnap = await getDoc(userRef);
-            const today = new Date().toDateString();
-
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data.lastResetDate !== today) {
-                    userCredits = 5;
-                    await updateDoc(userRef, { userCredits: 5, lastResetDate: today });
-                } else {
-                    userCredits = data.userCredits !== undefined ? data.userCredits : 5;
-                }
-            } else {
-                userCredits = 5;
-                await setDoc(userRef, { 
-                    userCredits: 5, 
-                    lastResetDate: today,
-                    email: user.email,
-                    name: user.displayName || 'Creator'
-                });
-            }
-            updateCreditUI();
-        } catch (e) {
-            console.error("Credit sync error:", e);
-        }
-    };
-
-    window.checkAndDeductCredit = async () => {
-        if (!currentUser) {
-            toggleModal(true);
-            return false;
-        }
-        if (userCredits <= 0) {
-            alert("⚠️ You've run out of daily credits! Come back tomorrow for 5 more. ✨");
-            return false;
-        }
-
-        userCredits -= 1;
-        updateCreditUI();
-        
-        if (db) {
-            const userRef = doc(db, 'users', currentUser.uid);
-            await updateDoc(userRef, { userCredits: userCredits }).catch(console.error);
-        }
-        return true;
-    };
-
-    // --- Auth State Observer ---
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            if (loginBtn) loginBtn.style.display = 'none';
-            if (userProfile) userProfile.style.display = 'flex';
-            
-            // For username-based accounts, the display name might not be set in user object
-            // We can show the part before @hub.local if displayName is missing
-            const displayName = user.displayName || user.email.split('@')[0];
-            if (userName) userName.innerText = displayName;
-            
-            // Simplified avatar
-            if (userAvatar) userAvatar.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.uid;
-            
-            currentUser = user;
+            btn.innerText = 'Logging in...';
+            const data = await apiFetch('/api/login', 'POST', { email, password });
+            updateAuthStateUI(data.user);
             toggleModal(false);
-            await syncUserCredits(user);
-            if (typeof syncStudioPromptsWithCloud === 'function') syncStudioPromptsWithCloud();
-        } else {
-            if (loginBtn) loginBtn.style.display = 'flex';
-            if (userProfile) userProfile.style.display = 'none';
-            if (creditBadge) creditBadge.style.display = 'none';
-            currentUser = null;
-            userCredits = 5;
-            if (typeof loadLocalStudioPrompts === 'function') loadLocalStudioPrompts();
+            window.location.href = 'dashboard.html';
+        } catch (err) {
+            alert("Login Failed: " + err.message);
+        } finally {
+            btn.innerText = 'Login';
         }
     });
-
-
-    // --- Email Auth ---
-    const loginForm = document.getElementById('emailLoginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const pass = document.getElementById('loginPassword').value;
-            const btn = loginForm.querySelector('button');
-            try {
-                btn.innerText = 'Logging in...';
-                // Convert username to dummy email
-                const dummyEmail = email.includes('@') ? email : `${email}@hub.local`;
-                await signInWithEmailAndPassword(auth, dummyEmail, pass);
-            } catch (error) {
-                alert("Login Error: " + error.message);
-            } finally {
-                btn.innerText = 'Login';
-            }
-        });
-    }
-
-    const registerForm = document.getElementById('emailRegisterForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('registerName').value;
-            const email = document.getElementById('registerEmail').value;
-            const pass = document.getElementById('registerPassword').value;
-            const btn = registerForm.querySelector('button');
-            try {
-                btn.innerText = 'Creating Account...';
-                // Convert username to dummy email
-                const dummyEmail = email.includes('@') ? email : `${email}@hub.local`;
-                await createUserWithEmailAndPassword(auth, dummyEmail, pass);
-                
-                // If name was provided, sync it to Firestore (Firebase Auth displayName isn't set immediately)
-                if (name && db && auth.currentUser) {
-                    const userRef = doc(db, 'users', auth.currentUser.uid);
-                    await updateDoc(userRef, { name: name }).catch(() => {});
-                }
-            } catch (error) {
-                alert("Register Error: " + error.message);
-            } finally {
-                btn.innerText = 'Create Account';
-            }
-        });
-    }
-
-    // Logout handler
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            await signOut(auth).catch(console.error);
-        });
-    }
 }
 
-// Listen for Firebase to be ready
-window.addEventListener('firebase-ready', initFirebaseAuth);
-if (window.firebaseAuth) initFirebaseAuth();
+const registerForm = document.getElementById('emailRegisterForm');
+if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('registerName').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const btn = registerForm.querySelector('button');
+        try {
+            btn.innerText = 'Creating Account...';
+            await apiFetch('/api/register', 'POST', { name, email, password });
+            alert("Success! Now please login.");
+            // Switch to login tab
+            document.querySelector('.auth-tab[data-tab="login"]').click();
+        } catch (err) {
+            alert("Registration Failed: " + err.message);
+        } finally {
+            btn.innerText = 'Create Account';
+        }
+    });
+}
+
+// Logout
+const handleLogout = async () => {
+    try {
+        await apiFetch('/api/logout', 'POST');
+        updateAuthStateUI(null);
+        window.location.href = 'index.html';
+    } catch (err) {
+        console.error("Logout failed", err);
+    }
+};
+
+if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+if (document.getElementById('logoutBtnTop')) document.getElementById('logoutBtnTop').addEventListener('click', handleLogout);
+
+// Dashboard Test Button
+const useCreditBtn = document.getElementById('useCreditBtn');
+if (useCreditBtn) {
+    useCreditBtn.addEventListener('click', async () => {
+        const loader = document.getElementById('creditLoader');
+        const btnText = useCreditBtn.querySelector('.btn-text');
+        
+        loader.style.display = 'block';
+        btnText.style.display = 'none';
+        
+        const success = await window.checkAndDeductCredit();
+        
+        loader.style.display = 'none';
+        btnText.style.display = 'block';
+        
+        if (success) {
+            alert("🎉 Magic happens! 1 credit used successfully.");
+        }
+    });
+}
+
+// Initialize Auth on Load
+document.addEventListener('DOMContentLoaded', checkAuthSession);
 
 const apiKey = 'AIzaSyCMTIhHDAJW6fWiqngicaJfv-frBMOKoGY';
 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;

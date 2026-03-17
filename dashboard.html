@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | AI Creator Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="firebase-config.js"></script>
+    <style>
+        .dashboard-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .stat-card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-muted); }
+        .stat-card .value { font-size: 2.5rem; font-weight: bold; color: var(--primary); }
+        .action-zone {
+            margin-top: 3rem;
+            text-align: center;
+        }
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-shapes">
+        <!-- Add existing shapes or new ones -->
+        <div class="shape shape-1" style="color: var(--secondary)">
+             <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M49 5L61.5 35.5L94 37L68.5 58L76.5 89.5L49 72L21.5 89.5L29.5 58L4 37L36.5 35.5L49 5Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="container dashboard-container">
+        <header>
+            <h1 id="welcomeUser">Welcome, <span>Creator</span></h1>
+            <p>Your creative command center 🚀</p>
+        </header>
+
+        <nav class="nav-links">
+            <a href="index.html" class="back-link">← Back to Tools</a>
+            <button id="logoutBtnTop" class="pill" style="cursor: pointer; background: white; border-color: var(--primary); color: var(--primary);">Logout</button>
+        </nav>
+
+        <main class="glass-panel">
+            <div class="user-stats">
+                <div class="stat-card doodle-border">
+                    <h3>Available Credits</h3>
+                    <div class="value" id="dashCredits">5</div>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Resets daily</p>
+                </div>
+                <div class="stat-card doodle-border">
+                    <h3>Account Status</h3>
+                    <div class="value" style="font-size: 1.5rem; color: var(--secondary);">Pro Tier</div>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Active</p>
+                </div>
+            </div>
+
+            <div class="action-zone">
+                <h2>Test Your Power</h2>
+                <p style="margin-bottom: 1.5rem;">Click the button below to use 1 credit and see the magic happen!</p>
+                <button id="useCreditBtn" class="primary-btn" style="max-width: 300px; margin: 0 auto;">
+                    <span class="btn-text">✨ Use 1 Credit</span>
+                    <div class="loader" id="creditLoader"></div>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Dashboard specific logic if not in script.js
+        document.addEventListener('DOMContentLoaded', async () => {
+             // We'll handle everything in script.js for consistency
+        });
+    </script>
+</body>
+</html>
