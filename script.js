@@ -1,47 +1,190 @@
 // ----------------------------------------------------
-// FIREBASE AUTHENTICATION LOGIC
+// FIREBASE AUTHENTICATION & CREDIT LOGIC
 // ----------------------------------------------------
 let currentUser = null;
+let userCredits = 5;
+
+// Auth UI Elements
+const authModal = document.getElementById('authModal');
+const creditBadge = document.getElementById('creditBadge');
+const creditCount = document.getElementById('creditCount');
+const loginBtn = document.getElementById('loginBtn');
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const userProfile = document.getElementById('userProfile');
+const userAvatar = document.getElementById('userAvatar');
+const userName = document.getElementById('userName');
 
 function initFirebaseAuth() {
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const userProfile = document.getElementById('userProfile');
-    const userAvatar = document.getElementById('userAvatar');
-    const userName = document.getElementById('userName');
+    if (!window.firebaseAuth) return;
 
-    if (!window.firebaseAuth || !loginBtn) return;
+    const { auth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } = window.firebaseAuth;
+    const { db, doc, getDoc, setDoc, updateDoc } = window.firebaseDb;
 
-    const { auth, provider, signInWithPopup, signOut, onAuthStateChanged } = window.firebaseAuth;
+// --- Modal Logic ---
+const closeAuthModalBuffer = document.getElementById('closeAuthModal');
+const authTabs = document.querySelectorAll('.auth-tab');
 
-    // Auth State Observer
+const toggleModal = (show) => {
+    if (authModal) authModal.style.display = show ? 'flex' : 'none';
+};
+
+if (loginBtn) loginBtn.addEventListener('click', () => toggleModal(true));
+if (closeAuthModalBuffer) closeAuthModalBuffer.addEventListener('click', () => toggleModal(false));
+
+authTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        authTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const target = tab.dataset.tab;
+        if (document.getElementById('loginTab')) document.getElementById('loginTab').style.display = target === 'login' ? 'block' : 'none';
+        if (document.getElementById('registerTab')) document.getElementById('registerTab').style.display = target === 'register' ? 'block' : 'none';
+    });
+});
+
+function initFirebaseAuth() {
+    if (!window.firebaseAuth) return;
+
+    const { auth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } = window.firebaseAuth;
+    const { db, doc, getDoc, setDoc, updateDoc } = window.firebaseDb;
+
+    // --- Modal Logic removed from here (moved globally above) ---
+
+    // --- Credit Logic ---
+    const updateCreditUI = () => {
+        if (creditCount) creditCount.innerText = userCredits;
+        if (creditBadge) {
+            creditBadge.style.display = currentUser ? 'block' : 'none';
+            creditBadge.classList.toggle('low-credits', userCredits <= 1);
+        }
+    };
+
+    const syncUserCredits = async (user) => {
+        if (!user || !db) return;
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            const docSnap = await getDoc(userRef);
+            const today = new Date().toDateString();
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.lastResetDate !== today) {
+                    userCredits = 5;
+                    await updateDoc(userRef, { userCredits: 5, lastResetDate: today });
+                } else {
+                    userCredits = data.userCredits !== undefined ? data.userCredits : 5;
+                }
+            } else {
+                userCredits = 5;
+                await setDoc(userRef, { 
+                    userCredits: 5, 
+                    lastResetDate: today,
+                    email: user.email,
+                    name: user.displayName || 'Creator'
+                });
+            }
+            updateCreditUI();
+        } catch (e) {
+            console.error("Credit sync error:", e);
+        }
+    };
+
+    window.checkAndDeductCredit = async () => {
+        if (!currentUser) {
+            toggleModal(true);
+            return false;
+        }
+        if (userCredits <= 0) {
+            alert("⚠️ You've run out of daily credits! Come back tomorrow for 5 more. ✨");
+            return false;
+        }
+
+        userCredits -= 1;
+        updateCreditUI();
+        
+        if (db) {
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, { userCredits: userCredits }).catch(console.error);
+        }
+        return true;
+    };
+
+    // --- Auth State Observer ---
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            loginBtn.style.display = 'none';
-            userProfile.style.display = 'flex';
-            userName.innerText = user.displayName ? user.displayName.split(' ')[0] : 'Creator';
-            userAvatar.src = user.photoURL || '';
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (userProfile) userProfile.style.display = 'flex';
+            
+            // For username-based accounts, the display name might not be set in user object
+            // We can show the part before @hub.local if displayName is missing
+            const displayName = user.displayName || user.email.split('@')[0];
+            if (userName) userName.innerText = displayName;
+            
+            // Simplified avatar
+            if (userAvatar) userAvatar.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.uid;
+            
             currentUser = user;
+            toggleModal(false);
+            await syncUserCredits(user);
             if (typeof syncStudioPromptsWithCloud === 'function') syncStudioPromptsWithCloud();
         } else {
-            loginBtn.style.display = 'flex';
-            userProfile.style.display = 'none';
+            if (loginBtn) loginBtn.style.display = 'flex';
+            if (userProfile) userProfile.style.display = 'none';
+            if (creditBadge) creditBadge.style.display = 'none';
             currentUser = null;
+            userCredits = 5;
             if (typeof loadLocalStudioPrompts === 'function') loadLocalStudioPrompts();
         }
     });
 
-    // Login handler
-    loginBtn.addEventListener('click', async () => {
-        try {
-            loginBtn.innerHTML = '<div class="loader" style="width:16px;height:16px;border-width:2px;display:inline-block;"></div>';
-            await signInWithPopup(auth, provider);
-        } catch (error) {
-            console.error('Login failed:', error);
-            alert('Login failed: ' + (error.message || 'Unknown error'));
-            loginBtn.innerHTML = 'Login';
-        }
-    });
+
+    // --- Email Auth ---
+    const loginForm = document.getElementById('emailLoginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+            const btn = loginForm.querySelector('button');
+            try {
+                btn.innerText = 'Logging in...';
+                // Convert username to dummy email
+                const dummyEmail = email.includes('@') ? email : `${email}@hub.local`;
+                await signInWithEmailAndPassword(auth, dummyEmail, pass);
+            } catch (error) {
+                alert("Login Error: " + error.message);
+            } finally {
+                btn.innerText = 'Login';
+            }
+        });
+    }
+
+    const registerForm = document.getElementById('emailRegisterForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const pass = document.getElementById('registerPassword').value;
+            const btn = registerForm.querySelector('button');
+            try {
+                btn.innerText = 'Creating Account...';
+                // Convert username to dummy email
+                const dummyEmail = email.includes('@') ? email : `${email}@hub.local`;
+                await createUserWithEmailAndPassword(auth, dummyEmail, pass);
+                
+                // If name was provided, sync it to Firestore (Firebase Auth displayName isn't set immediately)
+                if (name && db && auth.currentUser) {
+                    const userRef = doc(db, 'users', auth.currentUser.uid);
+                    await updateDoc(userRef, { name: name }).catch(() => {});
+                }
+            } catch (error) {
+                alert("Register Error: " + error.message);
+            } finally {
+                btn.innerText = 'Create Account';
+            }
+        });
+    }
 
     // Logout handler
     if (logoutBtn) {
@@ -51,9 +194,8 @@ function initFirebaseAuth() {
     }
 }
 
-// Listen for Firebase to be ready (it loads as an ES module, AFTER regular scripts)
+// Listen for Firebase to be ready
 window.addEventListener('firebase-ready', initFirebaseAuth);
-// Fallback: if firebase-ready already fired before this listener was added
 if (window.firebaseAuth) initFirebaseAuth();
 
 const apiKey = 'AIzaSyCMTIhHDAJW6fWiqngicaJfv-frBMOKoGY';
@@ -94,6 +236,11 @@ if (bioForm) {
         const btnText = document.querySelector('.btn-text');
         const resultsContainer = document.getElementById('results');
         
+        if (typeof window.checkAndDeductCredit === 'function') {
+            const hasCredit = await window.checkAndDeductCredit();
+            if (!hasCredit) return;
+        }
+
         btn.disabled = true; loader.style.display = 'block'; btnText.style.display = 'none';
         resultsContainer.classList.add('hidden'); resultsContainer.classList.remove('fade-in');
         
@@ -130,6 +277,11 @@ if (titleForm) {
         const btnText = document.querySelector('#generateTitleBtn .btn-text');
         const resultsContainer = document.getElementById('titleResults');
         
+        if (typeof window.checkAndDeductCredit === 'function') {
+            const hasCredit = await window.checkAndDeductCredit();
+            if (!hasCredit) return;
+        }
+
         btn.disabled = true; loader.style.display = 'block'; btnText.style.display = 'none';
         resultsContainer.classList.add('hidden'); resultsContainer.classList.remove('fade-in');
         
@@ -163,6 +315,11 @@ if (hashtagForm) {
         const btnText = document.querySelector('#generateHashBtn .btn-text');
         const resultsContainer = document.getElementById('hashResults');
         
+        if (typeof window.checkAndDeductCredit === 'function') {
+            const hasCredit = await window.checkAndDeductCredit();
+            if (!hasCredit) return;
+        }
+
         btn.disabled = true; loader.style.display = 'block'; btnText.style.display = 'none';
         resultsContainer.classList.add('hidden'); resultsContainer.classList.remove('fade-in');
         
@@ -199,6 +356,11 @@ if (scriptWriterForm) {
         const btnText = document.querySelector('#generateScriptBtn .btn-text');
         const resultsContainer = document.getElementById('scriptResults');
         
+        if (typeof window.checkAndDeductCredit === 'function') {
+            const hasCredit = await window.checkAndDeductCredit();
+            if (!hasCredit) return;
+        }
+
         btn.disabled = true; loader.style.display = 'block'; btnText.style.display = 'none';
         resultsContainer.classList.add('hidden'); resultsContainer.classList.remove('fade-in');
         
@@ -351,6 +513,11 @@ if (studioForm) {
         const loader = document.getElementById('studioLoader');
         const btnText = document.querySelector('#studioGenerateBtn .btn-text');
         const container = document.getElementById('generatedPromptContainer');
+
+        if (typeof window.checkAndDeductCredit === 'function') {
+            const hasCredit = await window.checkAndDeductCredit();
+            if (!hasCredit) return;
+        }
 
         btn.disabled = true; loader.style.display = 'block'; btnText.style.display = 'none';
         container.innerHTML = '<p style="font-size:1.2rem; color:var(--text-muted);">Generating master prompt...</p>';

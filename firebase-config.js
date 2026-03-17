@@ -1,7 +1,7 @@
 // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 // NOTE: Replace appId with the real one from Firebase Console > Project Settings > Your apps
@@ -17,12 +17,11 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
 
 // Expose on window for script.js
-window.firebaseAuth = { auth, provider, signInWithPopup, signOut, onAuthStateChanged };
-window.firebaseDb = { db, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove };
+window.firebaseAuth = { auth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword };
+window.firebaseDb = { db, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, deleteDoc };
 
 // Dispatch a custom event so script.js knows Firebase is ready
 // (ES modules execute AFTER regular scripts, so we can't rely on DOMContentLoaded order)
