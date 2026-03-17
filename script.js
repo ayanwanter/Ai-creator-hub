@@ -94,11 +94,30 @@ const closeAuthModal = document.getElementById('closeAuthModal');
 const authTabs = document.querySelectorAll('.auth-tab');
 
 const toggleModal = (show) => {
-    if (authModal) authModal.style.display = show ? 'flex' : 'none';
+    const modal = document.getElementById('authModal');
+    if (modal) {
+        modal.style.display = show ? 'flex' : 'none';
+        console.log(`Modal ${show ? 'shown' : 'hidden'}`);
+    } else {
+        console.error("Auth modal element not found!");
+    }
 };
 
-if (loginBtn) loginBtn.addEventListener('click', () => toggleModal(true));
-if (closeAuthModal) closeAuthModal.addEventListener('click', () => toggleModal(false));
+const loginBtnEl = document.getElementById('loginBtn');
+if (loginBtnEl) {
+    loginBtnEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log("Login button clicked");
+        toggleModal(true);
+    });
+} else {
+    console.error("Login button not found in DOM");
+}
+
+const closeBtnEl = document.getElementById('closeAuthModal');
+if (closeBtnEl) {
+    closeBtnEl.addEventListener('click', () => toggleModal(false));
+}
 
 authTabs.forEach(tab => {
     tab.addEventListener('click', () => {
